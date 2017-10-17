@@ -3,6 +3,9 @@
 ## Sample code used for my SANE 2006 paper "UPnP: dead simple or simply deadly?"
 ## The script has been reworked to be a bit more modern.
 ## Copyright 2005 - 2017 Armijn Hemel
+##
+## Licensed under the MIT license
+## SPDX-License-Identifier: MIT
 
 import sys, errno, mimetools, struct, datetime, argparse
 import socket
