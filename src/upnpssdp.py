@@ -2,7 +2,7 @@
 
 ## Sample code used for my SANE 2006 paper "UPnP: dead simple or simply deadly?"
 ## The script has been reworked to be a bit more modern.
-## Copyright 2005 - 2017 Armijn Hemel
+## Copyright 2005 - 2018 Armijn Hemel
 ##
 ## Licensed under the MIT license
 ## SPDX-License-Identifier: MIT
@@ -47,6 +47,7 @@ class SSDPDiscovery:
 			sys.stdout.flush()
 		self.sock.send(self.msg)
 
+## class to start a server that continuously listens for SSDP packets
 class SSDPServer(threading.Thread):
 	def __init__(self, logfilepath):
 		self.logfile = logfilepath
