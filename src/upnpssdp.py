@@ -56,22 +56,28 @@ class SSDPServer(threading.Thread):
 		## create two sockets, add them to the broadcast group and
 		## make sure that the address can be reused (Linux only, for BSD
 		## you should use other options).
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
-		self.sock2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock2.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
+		self.sendingsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+		self.receivingsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+		self.sendingsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.sendingsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
+		self.receivingsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.receivingsocket.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
+
+		#self.ssock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)
+		#self.ssock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
+
+		mreq = struct.pack("4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
+		self.receivingsocket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 		logfile = open(self.logfile, 'w+')
 		logfile.write("logfile open\n")
 		logfile.flush()
 
-		self.sock.bind(('', 1900))
-		self.sock2.bind(('', 1900))
-		self.sock.connect((host, 1900))
-		print "Sending discovery message on: %s, port %s " % self.sock.getpeername()
-		print "Listening on: %s, port %s\n" % self.sock.getsockname()
+		self.sendingsocket.bind(('', 1900))
+		self.receivingsocket.bind(('', 1900))
+		self.sendingsocket.connect((host, 1900))
+		print "Sending discovery message on: %s, port %s " % self.sendingsocket.getpeername()
+		print "Listening on: %s, port %s\n" % self.sendingsocket.getsockname()
 		self.msg = ""
 		self.msg = self.msg + "M-SEARCH * HTTP/1.1\r\n"
 		self.msg = self.msg + "HOST: 239.255.255.250:1900\r\n"
@@ -82,19 +88,17 @@ class SSDPServer(threading.Thread):
 		self.msg = self.msg + "\r\n"
 		logfile.write("sending msg\n")
 		logfile.write(self.msg)
-		self.sock.send(self.msg)
+		self.sendingsocket.send(self.msg)
 		logfile.write("message sent\n")
 		logfile.flush()
 
 		print "Listening...\n"
 		sys.stdout.flush()
 
-		mreq = struct.pack("4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
-   		self.sock2.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 		while (1):
 			print "Waiting for SSDP data at", datetime.datetime.utcnow().isoformat()
 			sys.stdout.flush()
-			(data, client) = self.sock2.recvfrom(1024)
+			(data, client) = self.receivingsocket.recvfrom(1024)
 			logfile.write(data)
 			tempres = self.parsedata(data, client[0])
 			self.filter_hosts(tempres)
