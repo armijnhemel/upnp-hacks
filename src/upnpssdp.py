@@ -1,22 +1,19 @@
-#! /usr/bin/python
+#! /usr/bin/env python3
 
 # Sample code used for my SANE 2006 paper "UPnP: dead simple or simply deadly?"
 # The script has been reworked to be a bit more modern.
-# Copyright 2005 - 2018 Armijn Hemel
+# Copyright 2005 - 2023 Armijn Hemel
 #
 # Licensed under the MIT license
 # SPDX-License-Identifier: MIT
 
-import sys
-import errno
-import mimetools
-import struct
-import datetime
 import argparse
+import datetime
 import socket
+import struct
+import sys
 import threading
 from StringIO import StringIO
-from urlparse import urlsplit
 
 #
 # Portmapping: WANIPConnection UPnP device
@@ -50,7 +47,7 @@ class SSDPDiscovery:
         self.msg = self.msg + "\r\n"
         self.msg = self.msg + "\r\n"
         if self.verbose:
-            print "Sending message: ", self.msg
+            print("Sending message: {self.msg}")
             sys.stdout.flush()
         self.sock.send(self.msg)
 
@@ -85,8 +82,8 @@ class SSDPServer(threading.Thread):
         self.sendingsocket.bind(('', 1900))
         self.receivingsocket.bind(('', 1900))
         self.sendingsocket.connect((host, 1900))
-        print "Sending discovery message on: %s, port %s " % self.sendingsocket.getpeername()
-        print "Listening on: %s, port %s\n" % self.sendingsocket.getsockname()
+        print("Sending discovery message on: %s, port %s " % self.sendingsocket.getpeername())
+        print("Listening on: %s, port %s\n" % self.sendingsocket.getsockname())
         self.msg = ""
         self.msg = self.msg + "M-SEARCH * HTTP/1.1\r\n"
         self.msg = self.msg + "HOST: 239.255.255.250:1900\r\n"
@@ -101,23 +98,23 @@ class SSDPServer(threading.Thread):
         logfile.write("message sent\n")
         logfile.flush()
 
-        print "Listening...\n"
+        print("Listening...\n")
         sys.stdout.flush()
 
-        while (1):
-            print "Waiting for SSDP data at", datetime.datetime.utcnow().isoformat()
+        while True:
+            print("Waiting for SSDP data at", datetime.datetime.utcnow().isoformat())
             sys.stdout.flush()
             (data, client) = self.receivingsocket.recvfrom(1024)
             logfile.write(data)
-            tempres = self.parsedata(data, client[0])
+            tempres = self.parse_data(data, client[0])
             self.filter_hosts(tempres)
             logfile.write(client[0])
             logfile.write("\n")
             logfile.flush()
-            print
+            print()
             sys.stdout.flush()
 
-    def parsedata(self, data, client):
+    def parse_data(self, data, client):
         headers = {}
         headers['HOSTIP'] = client
         counterheaders = 0
@@ -142,14 +139,14 @@ class SSDPServer(threading.Thread):
         try:
             for profilename in ["WANIPConnection", "WANPPPConnection", "WANPOTSConnection"]:
                 if profilename in data["ST"]:
-                    print "URL found", data["LOCATION"]
+                    print("URL found", data["LOCATION"])
                     sys.stdout.flush()
                     break
         except KeyError:
             # there is no ST header, just an NT header
             for profilename in ["WANIPConnection", "WANPPPConnection", "WANPOTSConnection"]:
                 if profilename in data["NT"]:
-                    print "URL found", data["LOCATION"]
+                    print("URL found", data["LOCATION"])
                     sys.stdout.flush()
                     break
 
@@ -172,4 +169,4 @@ def main(argv):
     ssdpserver.start()
 
 if __name__ == "__main__":
-        main(sys.argv)
+    main(sys.argv)

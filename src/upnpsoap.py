@@ -6,8 +6,10 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import sys
 import time
 import xml.dom.minidom
+
 from SOAPpy import *
 
 # There are many different end points. Here are a few ones that
@@ -73,9 +75,9 @@ ownip = '192.168.0.10'
 
 # first get the external IP address
 try:
-    print "external IP", server._sa(getexternalipaddress).GetExternalIPAddress()
+    print("external IP", server._sa(getexternalipaddress).GetExternalIPAddress())
 except:
-    print "endpoint not valid or UPnP not enabled"
+    print("endpoint not valid or UPnP not enabled")
     sys.exit(1)
 
 # print all existing portmappings
@@ -88,21 +90,20 @@ while(i < bound):
     except:
         i = i+1
         break
-    print "portmapping %d: " % i, response
+    print("portmapping %d: " % i, response)
     i = i+1
 
 # add a port mapping, then delete it
 
-print "add portmapping"
+print("add portmapping")
 response = server._sa(addportmapping).AddPortMapping(NewRemoteHost="", NewExternalPort=8022, NewProtocol="TCP", NewInternalPort=22, NewInternalClient=ownip, NewEnabled=1, NewPortMappingDescription="evil h4x0rz", NewLeaseDuration=0)
-print response
-print "delete portmapping"
+print(response)
+print("delete portmapping")
 
 try:
     server._sa(deleteportmapping).DeletePortMapping(NewRemoteHost="", NewExternalPort=22, NewProtocol="TCP")
 except:
     pass
-
 
 # some more things for different profiles
 
@@ -115,13 +116,13 @@ except:
 #getiprouterslist = "urn:schemas-upnp-org:service:LANDevice:1#GetIPRoutersList"
 #setiprouter = "urn:schemas-upnp-org:service:LANDevice:1#SetIPRouter"
 
-#print "DNS:", server2._sa(getdnsservers).GetDNSServers()
-#print "domainname:", server2._sa(getdomainname).GetDomainName()
-#print server2._sa(setdomainname).SetDomainName(NewDomainName="blaat")
-#print server2._sa(getdomainname).GetDomainName()
-#print server2._sa(getsubnetmask).GetSubnetMask()
-#print server2._sa(setsubnetmask).SetSubnetMask(NewSubnetMask="255.0.0.0")
-#print server2._sa(getiprouterslist).GetIPRoutersList()
-#print server2._sa(setiprouter).SetIPRouter(NewIPRouters="10.0.0.138")
+#print("DNS:", server2._sa(getdnsservers).GetDNSServers())
+#print("domainname:", server2._sa(getdomainname).GetDomainName())
+#print(server2._sa(setdomainname).SetDomainName(NewDomainName="blaat"))
+#print(server2._sa(getdomainname).GetDomainName())
+#print(server2._sa(getsubnetmask).GetSubnetMask())
+#print(server2._sa(setsubnetmask).SetSubnetMask(NewSubnetMask="255.0.0.0"))
+#print(server2._sa(getiprouterslist).GetIPRoutersList())
+#print(server2._sa(setiprouter).SetIPRouter(NewIPRouters="10.0.0.138"))
 
-print "NAT enabled:", server._sa(getnatrsipstatus).GetNATRSIPStatus()[1]
+print("NAT enabled:", server._sa(getnatrsipstatus).GetNATRSIPStatus()[1])
